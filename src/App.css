@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+.select-content-wrapper {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.select-content-wrapper input {
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+.mobile-select-wrapper {
+  position: relative;
+  z-index: 1000;
+}
+
+@media (max-width: 768px) {
+  .mobile-select-wrapper [data-radix-select-content] {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+    border-radius: 0 !important;
+    z-index: 9999 !important;
+    background: white !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    padding-top: 2.5rem !important;
+  }
+  .select-content-wrapper {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
