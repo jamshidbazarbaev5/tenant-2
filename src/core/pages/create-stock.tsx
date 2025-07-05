@@ -16,8 +16,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { fetchCurrency } from '../api/currency';
-import { fetchAllProducts } from '../api/fetchAllProducts';
+import api from '../api/api';
 
 
 interface FormValues extends Partial<Stock> {
@@ -194,13 +193,30 @@ export default function CreateStock() {
   const suppliers = Array.isArray(suppliersData) ? suppliersData : suppliersData?.results || [];
   const categories = Array.isArray(categoriesData) ? categoriesData : categoriesData?.results || [];
   
-  // Fetch all products from all API pages using new API
+  // Fetch all products from all API pages using api instance
   useEffect(() => {
-    const fetchProducts = async () => {
-      const products = await fetchAllProducts(productSearchTerm);
-      setAllProducts(products);
+    const fetchAllProducts = async () => {
+      let page = 1;
+      let products: any[] = [];
+      let totalPages = 1;
+      try {
+        do {
+          const res = await api.get('items/product/', {
+            params: {
+              page,
+              ...(productSearchTerm ? { product_name: productSearchTerm } : {})
+            }
+          });
+          products = products.concat(res.data.results);
+          totalPages = res.data.total_pages;
+          page++;
+        } while (page <= totalPages);
+        setAllProducts(products);
+      } catch (error) {
+        // Optionally handle error
+      }
     };
-    fetchProducts();
+    fetchAllProducts();
   }, [productSearchTerm]);
 
   const handleCreateSupplier = () => {
@@ -209,15 +225,15 @@ export default function CreateStock() {
   
 
 
-  // Fetch currency rate on mount
+  // Fetch currency rate on mount using api instance
   useEffect(() => {
-    const getCurrency = async () => {
+    const fetchCurrency = async () => {
       setCurrencyLoading(true);
       try {
-        const currencyData = await fetchCurrency();
-        if (currencyData) {
-          setCurrency(currencyData);
-          form.setValue('exchange_rate', currencyData.currency_rate);
+        const res = await api.get('items/currency/');
+        if (res.data.results && res.data.results.length > 0) {
+          setCurrency(res.data.results[0]);
+          form.setValue('exchange_rate', res.data.results[0].currency_rate);
         }
       } catch (e) {
         setCurrency(null);
@@ -225,7 +241,7 @@ export default function CreateStock() {
         setCurrencyLoading(false);
       }
     };
-    getCurrency();
+    fetchCurrency();
     // eslint-disable-next-line
   }, []);
 
@@ -403,12 +419,27 @@ export default function CreateStock() {
           }
         },
       });
+      // Add price per tone field before income_weight
+      fields.splice(quantityIndex, 0, {
+        name: 'price_per_tone',
+        label: t('common.price_per_tone') || 'Price per Tone',
+        type: 'number',
+        placeholder: t('common.enter_price_per_tone') || 'Enter price per tone',
+        required: true,
+        onChange: (value: string) => {
+          const pricePerTone = parseFloat(value);
+          const tone = parseFloat(form.watch('income_weight' as any) || '0');
+          if (!isNaN(pricePerTone) && !isNaN(tone)) {
+            form.setValue('purchase_price_in_us', (pricePerTone * tone).toString());
+          } else {
+            form.setValue('purchase_price_in_us', '');
+          }
+        },
+      });
       // Make quantity readOnly
       const quantityField = fields.find(f => f.name === 'quantity');
       if (quantityField) {
         quantityField.readOnly = true;
-        // Remove helperText property to fix TS error
-        // quantityField.helperText = t('common.calculated_quantity') || 'Calculated automatically';
       }
     }
   }
@@ -416,6 +447,7 @@ export default function CreateStock() {
   // Watch income_weight and update quantity for is_list products
   // Use 'as any' for dynamic field names not in FormValues
   const incomeWeight = form.watch('income_weight' as any) as string | number | undefined;
+  const pricePerTone = form.watch('price_per_tone' as any) as string | number | undefined;
   useEffect(() => {
     if (selectedProduct?.is_list) {
       const weight = typeof incomeWeight === 'string' ? parseFloat(incomeWeight) : Number(incomeWeight);
@@ -425,9 +457,16 @@ export default function CreateStock() {
       } else {
         form.setValue('quantity', '' as any);
       }
+      // Set purchase_price_in_us as price_per_tone * income_weight
+      const price = typeof pricePerTone === 'string' ? parseFloat(pricePerTone) : Number(pricePerTone);
+      if (!isNaN(price) && !isNaN(weight)) {
+        form.setValue('purchase_price_in_us', (price * weight).toString());
+      } else {
+        form.setValue('purchase_price_in_us', '');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomeWeight, selectedProduct]);
+  }, [incomeWeight, pricePerTone, selectedProduct]);
 
   const handleSubmit = async (data: FormValues) => {
     try {
@@ -449,6 +488,10 @@ export default function CreateStock() {
       };
       if (data.purchase_price_in_us && data.purchase_price_in_us !== '') {
         formattedData.purchase_price_in_us = String(data.purchase_price_in_us);
+      }
+      // Add price_per_ton if present
+      if ((data as any).price_per_tone && (data as any).price_per_tone !== '') {
+        formattedData.price_per_ton = String((data as any).price_per_tone);
       }
       if (data.exchange_rate && data.exchange_rate !== '') {
         formattedData.exchange_rate = currency ? currency.id.toString() : '';

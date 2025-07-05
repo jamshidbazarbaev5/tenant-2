@@ -29,7 +29,7 @@ export default function IncomePage() {
   const [selectedWorker, setSelectedWorker] = useState('all');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  
+
   const { data: storesData } = useGetStores();
   const { data: usersData } = useGetUsers();
   const stores = Array.isArray(storesData) ? storesData : storesData?.results || [];
@@ -41,10 +41,11 @@ export default function IncomePage() {
       ...(selectedSource !== 'all' && { source: selectedSource }),
       ...(selectedWorker !== 'all' && { worker: selectedWorker }),
       ...(startDate && { start_date: format(startDate, 'yyyy-MM-dd') }),
-      ...(endDate && { end_date: format(endDate, 'yyyy-MM-dd') })
+      ...(endDate && { end_date: format(endDate, 'yyyy-MM-dd') }),
+      page: page,
     }
   });
-  
+
   const incomes = Array.isArray(incomesData) ? incomesData : incomesData?.results || [];
   const totalCount = Array.isArray(incomesData) ? incomes.length : incomesData?.count || 0;
 
@@ -82,7 +83,7 @@ export default function IncomePage() {
       header: t('forms.amount3'),
       accessorKey: 'description.Amount',
       cell: (row: any) => (
-        <span className="font-medium text-emerald-600">
+          <span className="font-medium text-emerald-600">
           {formatCurrency(row.description.Amount)} UZS
         </span>
       ),
@@ -105,7 +106,7 @@ export default function IncomePage() {
       accessorKey: 'description.Client',
       cell: (row: any) => row.description.Client,
     },
-    
+
     {
       header: t('forms.worker'),
       accessorKey: 'worker_read.name',
@@ -122,126 +123,126 @@ export default function IncomePage() {
   const renderExpandedRow = (row: any) => {
     // Check if the row has Items in the description
     const items = row.description?.Items || [];
-    
+
     if (items.length === 0) {
       return <div className="p-4 text-gray-500">{t('messages.error.general')}</div>;
     }
-    
+
     return (
-      <div className="p-4">
-        <h3 className="text-sm font-medium mb-2">{t('table.items')}</h3>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-100">
-              <TableHead className="text-xs">{t('table.product')}</TableHead>
-              <TableHead className="text-xs">{t('table.quantity')}</TableHead>
-              <TableHead className="text-xs">{t('forms.selling_method')}</TableHead>
-              <TableHead className="text-xs">{t('forms.amount4')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item: any, index: number) => (
-              <TableRow key={index} className="border-b border-gray-100">
-                <TableCell className="py-2">{item.Product}</TableCell>
-                <TableCell className="py-2">{item.Quantity}</TableCell>
-                <TableCell className="py-2">{item['Selling Method'] || '-'}</TableCell>
-                <TableCell className="py-2">{formatCurrency(item.Subtotal)} UZS</TableCell>
+        <div className="p-4">
+          <h3 className="text-sm font-medium mb-2">{t('table.items')}</h3>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-100">
+                <TableHead className="text-xs">{t('table.product')}</TableHead>
+                <TableHead className="text-xs">{t('table.quantity')}</TableHead>
+                <TableHead className="text-xs">{t('forms.selling_method')}</TableHead>
+                <TableHead className="text-xs">{t('forms.amount4')}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {items.map((item: any, index: number) => (
+                  <TableRow key={index} className="border-b border-gray-100">
+                    <TableCell className="py-2">{item.Product}</TableCell>
+                    <TableCell className="py-2">{item.Quantity}</TableCell>
+                    <TableCell className="py-2">{item['Selling Method'] || '-'}</TableCell>
+                    <TableCell className="py-2">{formatCurrency(item.Subtotal)} UZS</TableCell>
+                  </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
     );
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t('navigation.incomes')}</h1>
-        
-      </div>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">{t('navigation.incomes')}</h1>
 
-      <div className="flex gap-4 mb-6">
-        {currentUser?.is_superuser && (
-    <Select value={selectedStore} onValueChange={setSelectedStore}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t('forms.select_store')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('forms.all_stores')}</SelectItem>
-            {stores.map((store: Store) => (
-              <SelectItem key={store.id} value={String(store.id)}>
-                {store.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        )}
-    
-
-        <Select value={selectedSource} onValueChange={setSelectedSource}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t('forms.select_source')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('forms.all_sources')}</SelectItem>
-            <SelectItem value="Погашение долга">Погашение долга</SelectItem>
-            <SelectItem value="Продажа">Продажа</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t('forms.select_worker')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('forms.all_workers')}</SelectItem>
-            {users.map((user) => (
-              <SelectItem key={user.id} value={String(user.id)}>
-                {user.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex gap-4">
-          <DatePicker
-            selected={startDate}
-            onChange={(date: Date | null) => setStartDate(date)}
-            selectsStart
-            startDate={startDate}
-            endDate={endDate}
-            dateFormat="dd/MM/yyyy"
-            placeholderText={t('forms.start_date')}
-            className="w-[200px] flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
-          <DatePicker
-            selected={endDate}
-            onChange={(date: Date | null) => setEndDate(date)}
-            selectsEnd
-            startDate={startDate}
-            endDate={endDate}
-            minDate={startDate || undefined}
-            dateFormat="dd/MM/yyyy"
-            placeholderText={t('forms.end_date')}
-            className="w-[200px] flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
         </div>
-      </div>
 
-      <Card>
-        <ResourceTable
-          data={incomes}
-          columns={columns}
-          isLoading={isLoading}
-          totalCount={totalCount}
-          pageSize={10}
-          currentPage={page}
-          onPageChange={(newPage) => setPage(newPage)}
-          expandedRowRenderer={renderExpandedRow}
-          onRowClick={(row) => console.log('Row clicked:', row)}
-        />
-      </Card>
-    </div>
+        <div className="flex gap-4 mb-6">
+          {currentUser?.is_superuser && (
+              <Select value={selectedStore} onValueChange={setSelectedStore}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder={t('forms.select_store')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('forms.all_stores')}</SelectItem>
+                  {stores.map((store: Store) => (
+                      <SelectItem key={store.id} value={String(store.id)}>
+                        {store.name}
+                      </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+          )}
+
+
+          <Select value={selectedSource} onValueChange={setSelectedSource}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={t('forms.select_source')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('forms.all_sources')}</SelectItem>
+              <SelectItem value="Погашение долга">Погашение долга</SelectItem>
+              <SelectItem value="Продажа">Продажа</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={t('forms.select_worker')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('forms.all_workers')}</SelectItem>
+              {users.map((user) => (
+                  <SelectItem key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-4">
+            <DatePicker
+                selected={startDate}
+                onChange={(date: Date | null) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                dateFormat="dd/MM/yyyy"
+                placeholderText={t('forms.start_date')}
+                className="w-[200px] flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <DatePicker
+                selected={endDate}
+                onChange={(date: Date | null) => setEndDate(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                minDate={startDate || undefined}
+                dateFormat="dd/MM/yyyy"
+                placeholderText={t('forms.end_date')}
+                className="w-[200px] flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+        </div>
+
+        <Card>
+          <ResourceTable
+              data={incomes}
+              columns={columns}
+              isLoading={isLoading}
+              totalCount={totalCount}
+              pageSize={30}
+              currentPage={page}
+              onPageChange={(newPage) => setPage(newPage)}
+              expandedRowRenderer={renderExpandedRow}
+              onRowClick={(row) => console.log('Row clicked:', row)}
+          />
+        </Card>
+      </div>
   );
 }
