@@ -72,6 +72,68 @@ interface SaleFormData {
   };
 }
 
+function calculateTotalProfit({ saleItems, salePayments, totalAmount, selectedPrices, stocks, recyclingData, getRecyclingRecord }: {
+  saleItems: any[],
+  salePayments: any[],
+  totalAmount: number,
+  selectedPrices: Record<number, any>,
+  stocks: any[],
+  recyclingData: any,
+  getRecyclingRecord: (productId: number) => any
+}) {
+  const totalPayments = salePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  let totalProfit = 0;
+  saleItems.forEach((item, index) => {
+    if (selectedPrices[index]) {
+      const quantity = item.quantity || 1;
+      const subtotal = parseFloat(item.subtotal) || 0;
+      const itemTotal = subtotal * quantity;
+      const stockId = item.stock_write;
+      const selectedStock = stocks.find(stock => stock.id === stockId);
+      let profitPerUnit = 0;
+      // --- Recycling profit logic ---
+      let recyclingProfitUsed = false;
+      if (selectedStock && recyclingData) {
+        const recyclingRecord = getRecyclingRecord(selectedStock.product_read.id);
+        if (recyclingRecord) {
+          // Use recycling profit calculation
+          const baseProfitPerUnit = calculateRecyclingProfit(recyclingRecord, 1);
+          const originalSubtotal = selectedPrices[index].selling;
+          const priceDifference = subtotal - originalSubtotal;
+          profitPerUnit = baseProfitPerUnit + priceDifference;
+          recyclingProfitUsed = true;
+        }
+      }
+      if (!recyclingProfitUsed && selectedStock) {
+        if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
+          const measurements = selectedStock.product_read.measurement || [];
+          const getNumber = (name: string) => {
+            const m = measurements.find((m: any) => m.measurement_read.measurement_name === name);
+            return m ? parseFloat(m.number) : 1;
+          };
+          const length = getNumber('длина');
+          const thickness = getNumber('Толщина');
+          const meter = getNumber('Метр');
+          const exchangeRate = parseFloat(selectedStock.exchange_rate_read?.currency_rate || '1');
+          const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
+          const purchasePriceInUs = purchasePriceInUss;
+          const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
+          profitPerUnit = subtotal - PROFIT_FAKE;
+        } else {
+          const totalPurchasePrice = parseFloat(selectedStock.purchase_price_in_uz || '0');
+          const stockQuantity = selectedStock.quantity_for_history || selectedStock.quantity || 1;
+          const purchasePricePerUnit = totalPurchasePrice / stockQuantity;
+          profitPerUnit = subtotal - purchasePricePerUnit;
+        }
+      }
+      const paidShare = totalAmount > 0 ? (itemTotal / totalAmount) * totalPayments : itemTotal;
+      const itemCost = (itemTotal - (profitPerUnit * quantity));
+      totalProfit += paidShare - itemCost;
+    }
+  });
+  return totalProfit;
+}
+
 export default function CreateSale() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -398,30 +460,35 @@ export default function CreateSale() {
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const value = parseInt(e.target.value, 10);
+    const value = parseFloat(e.target.value); // Use parseFloat to allow decimals  
+    // If input is empty or not a number, set quantity to 0 and update totals
+    if (isNaN(value)) {
+      form.setValue(`sale_items.${index}.quantity`, 0);
+      updateTotalAmount();
+      return;
+    }
+  
     const maxQuantity = selectedStocks[index] || 0;
     const subtotal = parseFloat(form.getValues(`sale_items.${index}.subtotal`)) || 0;
     const stockId = form.getValues(`sale_items.${index}.stock_write`);
     const selectedStock = stocks.find(stock => stock.id === stockId);
-
+  
     if (value > maxQuantity) {
       toast.error(t('messages.error.insufficient_quantity'));
       form.setValue(`sale_items.${index}.quantity`, maxQuantity);
     } else {
       form.setValue(`sale_items.${index}.quantity`, value);
-      // Recalculate profit with new quantity using quantity_for_history if available
+      // Recalculate profit with new quantity
       if (selectedPrices[index] && selectedStock) {
         let profit = 0;
         const recyclingRecord = getRecyclingRecord(selectedStock.product_read.id);
         if (recyclingRecord) {
-            // The profit logic for recycling items on subtotal change is handled in `handleSubtotalChange`.
-            // Here, we can recalculate based on the already computed profit-per-unit.
-            const originalSubtotal = selectedPrices[index].selling;
-            const currentSubtotal = parseFloat(form.getValues(`sale_items.${index}.subtotal`)) || originalSubtotal;
-            const baseProfitPerUnit = calculateRecyclingProfit(recyclingRecord, 1);
-            const priceDifference = currentSubtotal - originalSubtotal;
-            const newProfitPerUnit = baseProfitPerUnit + priceDifference;
-            profit = newProfitPerUnit * value;
+          const originalSubtotal = selectedPrices[index].selling;
+          const currentSubtotal = parseFloat(form.getValues(`sale_items.${index}.subtotal`)) || originalSubtotal;
+          const baseProfitPerUnit = calculateRecyclingProfit(recyclingRecord, 1);
+          const priceDifference = currentSubtotal - originalSubtotal;
+          const newProfitPerUnit = baseProfitPerUnit + priceDifference;
+          profit = newProfitPerUnit * value;
         } else if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
           // PROFIT_FAKE logic
           const measurements = selectedStock.product_read.measurement || [];
@@ -436,7 +503,7 @@ export default function CreateSale() {
           const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
           const purchasePriceInUs = purchasePriceInUss;
           const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
-          const sellingPrice = parseFloat(selectedStock.selling_price || '0');
+                    const sellingPrice = parseFloat(selectedStock.selling_price || '0');
           profit = (sellingPrice - PROFIT_FAKE) * value;
         } else {
           // Standard profit calculation
@@ -449,8 +516,8 @@ export default function CreateSale() {
           ...prev,
           [index]: {
             ...prev[index],
-            profit: profit
-          }
+            profit: profit,
+          },
         }));
       }
     }
@@ -524,6 +591,9 @@ export default function CreateSale() {
 
   const handleSubmit = async (data: SaleFormData) => {
     try {
+      // Set total_amount to the sum of all payment amounts
+      data.total_amount = data.sale_payments.reduce((sum, payment) => sum + (payment.amount || 0), 0).toString();
+
       // Set store_write based on user role
       if (!isAdmin && !isSuperUser && currentUser?.store_read?.id) {
         // Seller: use their own store
@@ -560,58 +630,18 @@ export default function CreateSale() {
         return;
       }
 
-      // Calculate totalProfit (pure revenue)
-      const saleItems = data.sale_items;
-      const totalPayments = data.sale_payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-      const totalAmount = parseFloat(data.total_amount) || 0;
-      let totalProfit = 0;
-      saleItems.forEach((item, index) => {
-        if (selectedPrices[index]) {
-          const quantity = item.quantity || 1;
-          const subtotal = parseFloat(item.subtotal) || 0;
-          const itemTotal = subtotal * quantity;
-          const stockId = item.stock_write;
-          const selectedStock = stocks.find(stock => stock.id === stockId);
-          let profitPerUnit = 0;
-          // --- Recycling profit logic ---
-          let recyclingProfitUsed = false;
-          if (selectedStock && recyclingData) {
-            const recyclingRecord = getRecyclingRecord(selectedStock.product_read.id);
-            if (recyclingRecord) {
-              // Use recycling profit calculation
-              const baseProfitPerUnit = calculateRecyclingProfit(recyclingRecord, 1);
-              const originalSubtotal = selectedPrices[index].selling;
-              const priceDifference = subtotal - originalSubtotal;
-              profitPerUnit = baseProfitPerUnit + priceDifference;
-              recyclingProfitUsed = true;
-            }
-          }
-          if (!recyclingProfitUsed && selectedStock) {
-            if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
-              const measurements = selectedStock.product_read.measurement || [];
-              const getNumber = (name: string) => {
-                const m = measurements.find((m: any) => m.measurement_read.measurement_name === name);
-                return m ? parseFloat(m.number) : 1;
-              };
-              const length = getNumber('длина');
-              const thickness = getNumber('Толщина');
-              const meter = getNumber('Метр');
-              const exchangeRate = parseFloat(selectedStock.exchange_rate_read?.currency_rate || '1');
-              const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
-              const purchasePriceInUs = purchasePriceInUss;
-              const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
-              profitPerUnit = subtotal - PROFIT_FAKE;
-            } else {
-              const totalPurchasePrice = parseFloat(selectedStock.purchase_price_in_uz || '0');
-              const stockQuantity = selectedStock.quantity_for_history || selectedStock.quantity || 1;
-              const purchasePricePerUnit = totalPurchasePrice / stockQuantity;
-              profitPerUnit = subtotal - purchasePricePerUnit;
-            }
-          }
-          const paidShare = totalAmount > 0 ? (itemTotal / totalAmount) * totalPayments : itemTotal;
-          const itemCost = (itemTotal - (profitPerUnit * quantity));
-          totalProfit += paidShare - itemCost;
-        }
+      // --- Use the exact same values as the UI for profit calculation ---
+      const saleItems = form.getValues('sale_items');
+      const salePayments = form.getValues('sale_payments');
+      const totalAmount = parseFloat(form.getValues('total_amount')) || 0;
+      const totalProfit = calculateTotalProfit({
+        saleItems,
+        salePayments,
+        totalAmount,
+        selectedPrices,
+        stocks,
+        recyclingData,
+        getRecyclingRecord
       });
 
       // Get primary payment method from sale_payments
@@ -625,15 +655,15 @@ export default function CreateSale() {
           stock_write: item.stock_write,
           selling_method: item.selling_method,
           quantity: item.quantity.toString(),
-          subtotal: item.subtotal.toString()
+          subtotal: Math.floor(Number(String(item.subtotal).replace(/,/g, ''))).toString()
         })),
         sale_payments: data.sale_payments.map(payment => ({
           payment_method: payment.payment_method,
-          amount: payment.amount.toString()
+          amount: Math.floor(Number(String(payment.amount).replace(/,/g, ''))).toString()
         })),
         on_credit: data.on_credit,
-        total_amount: data.total_amount.toString(),
-        total_pure_revenue: totalProfit.toFixed(1),
+        total_amount: Math.floor(Number(String(data.total_amount).replace(/,/g, ''))).toString(),
+        total_pure_revenue: Math.floor(Number(String(totalProfit).replace(/,/g, ''))).toString(),
         // If client is selected but on credit, send client directly
         ...(data.sale_debt?.client && !data.on_credit ? { client: data.sale_debt.client } : {}),
         // If on credit and client selected, include in sale_debt
@@ -641,7 +671,7 @@ export default function CreateSale() {
           sale_debt: {
             client: data.sale_debt.client,
             due_date: data.sale_debt.due_date,
-            ...(data.sale_debt.deposit ? { deposit: data.sale_debt.deposit.toString() } : {})
+            ...(data.sale_debt.deposit ? { deposit: Math.floor(Number(String(data.sale_debt.deposit).replace(/,/g, ''))).toString() } : {})
           }
         } : {})
       };
@@ -786,8 +816,11 @@ export default function CreateSale() {
                             const selectedStore = form.watch('store_write');
                             // Cast user to ExtendedUser to access store_read
                             const extendedUser = user as ExtendedUser;
-                            return user.role === 'Продавец' &&
-                              (!selectedStore || extendedUser.store_read?.id === selectedStore);
+                            return (
+                              (user.role === 'Продавец' || user.role === 'Администратор') &&
+                              extendedUser.store_read &&
+                              (!selectedStore || extendedUser.store_read.id === selectedStore)
+                            );
                           })
                           .map((user) => (
                             <SelectItem key={user.id} value={user.id?.toString() || ''}>
@@ -917,7 +950,8 @@ export default function CreateSale() {
                         <FormControl>
                           <Input
                             type="number"
-                            min="1"
+                            min="0"
+                            step="any"
                             max={selectedStocks[index] || 1}
                             placeholder={t('placeholders.enter_quantity')}
                             className="text-right"
@@ -1003,20 +1037,20 @@ export default function CreateSale() {
                       <FormLabel>{t('table.amount')}</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          value={value?.toString() || ''}
+                          type="text"
+                          value={
+                            value !== undefined && value !== null
+                              ? Number(value).toLocaleString()
+                              : ''
+                          }
                           onChange={(e) => {
-                            const newAmount = parseFloat(e.target.value) || 0;
+                            // Remove all non-digit and non-decimal characters for parsing
+                            const rawValue = e.target.value.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                            const newAmount = parseFloat(rawValue) || 0;
                             const totalAmount = parseFloat(form.watch('total_amount'));
                             const otherPaymentsTotal = form.watch('sale_payments')
                               .filter((_, i) => i !== index)
                               .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-                            // Debug logs
-                            console.log('--- Payment Change Debug ---');
-                            console.log('newAmount:', newAmount);
-                            console.log('otherPaymentsTotal:', otherPaymentsTotal);
-                            console.log('totalAmount:', totalAmount);
 
                             // Update payment amount
                             if (newAmount + otherPaymentsTotal > totalAmount) {
@@ -1225,56 +1259,16 @@ export default function CreateSale() {
                   <p className="text-xl sm:text-3xl font-bold text-green-600">
                     {(() => {
                       const saleItems = form.watch('sale_items');
-                      const totalPayments = form.watch('sale_payments').reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                      const salePayments = form.watch('sale_payments');
                       const totalAmount = parseFloat(form.watch('total_amount')) || 0;
-                      let totalProfit = 0;
-                      saleItems.forEach((item, index) => {
-                        if (selectedPrices[index]) {
-                          const quantity = item.quantity || 1;
-                          const subtotal = parseFloat(item.subtotal) || 0;
-                          const itemTotal = subtotal * quantity;
-                          const stockId = item.stock_write;
-                          const selectedStock = stocks.find(stock => stock.id === stockId);
-                          let profitPerUnit = 0;
-                          // --- Recycling profit logic ---
-                          let recyclingProfitUsed = false;
-                          if (selectedStock && recyclingData) {
-                            const recyclingRecord = getRecyclingRecord(selectedStock.product_read.id);
-                            if (recyclingRecord) {
-                              // Use recycling profit calculation consistent with handleSubmit
-                              const baseProfitPerUnit = calculateRecyclingProfit(recyclingRecord, 1);
-                              const originalSubtotal = selectedPrices[index].selling;
-                              const priceDifference = subtotal - originalSubtotal;
-                              profitPerUnit = baseProfitPerUnit + priceDifference;
-                              recyclingProfitUsed = true;
-                            }
-                          }
-                          if (!recyclingProfitUsed && selectedStock) {
-                            if (selectedStock?.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
-                              const measurements = selectedStock.product_read.measurement || [];
-                              const getNumber = (name: string) => {
-                                const m = measurements.find((m: any) => m.measurement_read.measurement_name === name);
-                                return m ? parseFloat(m.number) : 1;
-                              };
-                              const length = getNumber('длина');
-                              const thickness = getNumber('Толщина');
-                              const meter = getNumber('Метр');
-                              const exchangeRate = parseFloat(selectedStock.exchange_rate_read?.currency_rate || '1');
-                              const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
-                              const purchasePriceInUs = purchasePriceInUss;
-                              const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
-                              profitPerUnit = subtotal - PROFIT_FAKE;
-                            } else {
-                              const totalPurchasePrice = parseFloat(selectedStock?.purchase_price_in_uz || '0');
-                              const stockQuantity = selectedStock?.quantity_for_history || selectedStock?.quantity || 1;
-                              const purchasePricePerUnit = totalPurchasePrice / stockQuantity;
-                              profitPerUnit = subtotal - purchasePricePerUnit;
-                            }
-                          }
-                          const paidShare = totalAmount > 0 ? (itemTotal / totalAmount) * totalPayments : itemTotal;
-                          const itemCost = (itemTotal - (profitPerUnit * quantity));
-                          totalProfit += paidShare - itemCost;
-                        }
+                      const totalProfit = calculateTotalProfit({
+                        saleItems,
+                        salePayments,
+                        totalAmount,
+                        selectedPrices,
+                        stocks,
+                        recyclingData,
+                        getRecyclingRecord
                       });
                       return totalProfit.toFixed(1).toLocaleString();
                     })()}

@@ -16,6 +16,7 @@ interface ProductStockBalance {
 
 interface StockBalanceResponse {
   count: number;
+  total: number;
   total_volume:number;
   total_pages: number;
   current_page: number;
@@ -29,6 +30,7 @@ interface StockBalanceResponse {
   page_size: number;
   results: {
     total_product: number;
+    total: number;
     info_products: ProductStockBalance[];
     total_volume :number;
   };
@@ -70,12 +72,19 @@ export default function ProductStockBalancePage() {
     {
       header: t('table.quantity'),
       accessorKey: 'total_quantity',
-      cell: (row: any) => row.total_quantity.toLocaleString(),
+      cell: (row: any) => row.total_quantity?.toLocaleString(),
     },
      {
       header: t('table.total_kub_volume'),
       accessorKey: 'total_kub_volume',
-      cell: (row: any) => row?.total_kub_volume?.toLocaleString() || '0',
+      cell: (row: any) => {
+        const kub = typeof row?.total_kub === 'number' ? row.total_kub.toFixed(2).replace('.', ',') : null;
+        const kubVol = typeof row?.total_kub_volume === 'number' ? row.total_kub_volume.toFixed(2).replace('.', ',') : null;
+        if (kub && kubVol) return `${kub} / ${kubVol}`;
+        if (kub) return kub;
+        if (kubVol) return kubVol;
+        return '0,00';
+      },
     },
   ];
 
@@ -121,8 +130,8 @@ export default function ProductStockBalancePage() {
           <h1 className='text-lg font-bold'>
             {t('table.total_volume')}
             {/* Show as 135,37 if value exists */}
-            {typeof data?.results.total_volume === 'number' && (
-              <span> {data.results.total_volume.toFixed(2).replace('.', ',')}</span>
+            {typeof data?.results.total === 'number' && (
+              <span> {data.results.total.toFixed(2).replace('.', ',')}</span>
             )}
           </h1>
         </div>
