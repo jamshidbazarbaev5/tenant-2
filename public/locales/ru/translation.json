@@ -102,7 +102,7 @@
     "no_client_debt_data_available": "Нет данных о долгах клиентов"
   },
   "stock": {
-    "price_history": "История цен"
+    "price_history": "Детальная информация:"
   },
   "payment_types": {
     "cash": "Наличные",
@@ -124,7 +124,7 @@
     "create_expense": "Создать расход"
   },
   "common": {
-    "pay": "Оплатить",
+    "pay": "Способ оплаты",
     "enter_price_per_tone": "Введите цену за тонну",
     "price_per_tone": "Цена за тонну",
     "price_per_ton": "Цена за тонну",
@@ -201,7 +201,7 @@
     "select_store": "Выберите магазин",
     "enter_purchase_price_usd": "Введите цену покупки в USD",
     "enter_exchange_rate": "Введите курс обмена",
-    "calculated_purchase_price_uzs": "Рассчитанная цена покупки в UZS",
+    "calculated_purchase_price_uzs": "Цена покупки в суммах",
     "enter_selling_price": "Введите цену продажи",
     "enter_minimum_price": "Введите минимальную цену",
     "enter_quantity": "Введите количество",
@@ -279,8 +279,11 @@
   },
 
   "forms": {
+    "type_product_id": "Введите ID прихода",
+    "sponsor_name": "Имя спонсора",
     "type":"Тип",
     "paid_at":"Дата оплаты",
+    "overpayment_unused":"Переоплачено",
     "notes":"Заметки",
     "currency":"Валюта",
     "created_at":"Дата создания",
@@ -291,7 +294,7 @@
     "search_clients":"Название клиента для поиска",
     "has_shtuk":"Продается в Штуках?",
     "has_metr":"Продается в Метрах?",
-    "type_product_name":"Пишите название товара",
+    "type_product_name":"Напишите название товара",
     "length":"Толщина",
     "static_weight":"Метр",
     "is_list":"Это Лист?",
@@ -347,7 +350,7 @@
     "select_expense_name": "Выберите название расхода",
     "card": "Карта",
     "complex_payment": "Сложная оплата",
-    "name": "Имя",
+    "name": "Название",
     "amount3": " Общая Сумма",
     "history": "История ",
     "amount2": " Сумма",
@@ -357,7 +360,7 @@
     "total_amount": "Общая сумма",
     "date_joined": "Дата ",
     "store_type": "Тип магазина",
-    "payment_method": "Оплатить",
+    "payment_method": "Тип оплаты",
     "store": "Магазин",
     "actions": "Действия",
 
@@ -437,6 +440,7 @@
       "payment_created": "Платеж успешно создан"
     },
     "error": {
+      "delete_budget_negative":"Невозможно удалить: бюджет магазина станет отрицательным.",
       "create": "Не удалось создать ",
       "below_min_price": "Цена продажи не может быть ниже минимальной цены",
       "update": "Не удалось обновить",
@@ -513,12 +517,14 @@
     "complex": "Сложная оплата"
   },
   "table": {
+    "id": "ИД",
+    "exchange_rate":"Курс обмена",
     "subtotal": "Сумма за единицу",
     "profit":"Прибыль",
     "total_pure_revenue":"чистый доход",
     "total_volume":"Общий объём в кубах",
     "sold_date":"Дата продажи",
-    "total_kub_volume": " объем куба",
+    "total_kub_volume": "Объём в кубах",
     "source": "Источник",
     "seller": "Продавец",
     "deposit": "Аванс",
@@ -537,7 +543,7 @@
     "staff": "Устав",
     "purchase_price": "Цена покупки",
     "name": "Название",
-    "to_stock": "К складу",
+    "to_stock": "На складу",
     "from_product": "С товара",
     "measurements": "Единицы измерения",
     "address": "Адрес",
@@ -565,7 +571,7 @@
     "history_value": "Предыдущее значение"
   },
   "stock": {
-    "price_history": "История цен"
+    "price_history": "Детальная информация:"
   },
   "messages": {
     "create":"Создать",
@@ -580,6 +586,8 @@
       "payment_created": "Платеж успешно создан"
     },
     "error": {
+
+      "delete_budget_negative":"Невозможно удалить: бюджет магазина станет отрицательным.",
       "create": "Не удалось создать ",
       "below_min_price": "Цена продажи не может быть ниже минимальной цены",
       "update": "Не удалось обновить",

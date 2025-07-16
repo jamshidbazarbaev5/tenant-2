@@ -10,7 +10,7 @@ import { useGetProducts } from '../api/product';
 import { useGetStores } from '../api/store';
 import { useGetSuppliers } from '../api/supplier';
 import api from '../api/api';
-import axios from 'axios';
+
 import { getAccessToken } from '../api/auth';
 
 interface FormValues extends Partial<Stock> {
@@ -49,11 +49,16 @@ export default function EditStock() {
       income_weight: ''
     }
   });
+
+  // Fetch currency rate on mount
   useEffect(() => {
     const fetchCurrency = async () => {
       setCurrencyLoading(true);
       try {
-        const res = await api.get('items/currency/');
+        const token = getAccessToken();
+        const res = await api.get('/items/currency/', {
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
+        });
         if (res.data.results && res.data.results.length > 0) {
           setCurrency(res.data.results[0]);
           form.setValue('exchange_rate', res.data.results[0].currency_rate);
@@ -90,25 +95,23 @@ export default function EditStock() {
 
   // Effect to update purchase_price_in_uz when its dependencies change
   useEffect(() => {
-    if (usdPrice && exchangeRateValue) {
+    // Only auto-calculate if usdPrice is not empty and not zero
+    if (usdPrice && usdPrice !== '0' && exchangeRateValue) {
       const priceInUSD = parseFloat(usdPrice);
       const rate = parseFloat(exchangeRateValue);
-      // const quantityString = form.watch('quantity')?.toString() || '0';
-      // const quantity = parseFloat(quantityString);
       if (!isNaN(priceInUSD) && !isNaN(rate)) {
         const calculatedPrice = priceInUSD * rate;
         form.setValue('purchase_price_in_uz', calculatedPrice.toString(), {
           shouldValidate: false,
           shouldDirty: true
         });
-        // Calculate per unit price (optional, for helper text)
-        // if (!isNaN(quantity) && quantity > 0) {
-        //   const perUnit = calculatedPrice / quantity;
-        //   setPerUnitPrice(perUnit);
-        // } else {
-        //   setPerUnitPrice(null);
-        // }
       }
+    } else if (stock?.purchase_price_in_uz) {
+      // If usdPrice is zero or empty, restore backend value
+      form.setValue('purchase_price_in_uz', stock.purchase_price_in_uz.toString(), {
+        shouldValidate: false,
+        shouldDirty: true
+      });
     }
   }, [usdPrice, exchangeRateValue, form, form.watch('quantity')]);
 
@@ -455,6 +458,7 @@ export default function EditStock() {
         supplier_write: typeof data.supplier_write === 'string' ? parseInt(data.supplier_write, 10) : data.supplier_write!,
         date_of_arrived: data.date_of_arrived,
         measurement_write: [],
+        quantity_for_history:data.quantity,
         ...(data.income_weight ? { income_weight: data.income_weight } : {})
       };
       if (data.purchase_price_in_us && data.purchase_price_in_us !== '') {

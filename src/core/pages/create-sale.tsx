@@ -105,7 +105,9 @@ function calculateTotalProfit({ saleItems, salePayments, totalAmount, selectedPr
         }
       }
       if (!recyclingProfitUsed && selectedStock) {
-        if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
+        const categoryName = selectedStock.product_read?.category_read?.category_name || '';
+        const specialCategories = ["Половой", "Страпила", "Половой агаш", "Стропила"];
+        if (selectedStock.product_read?.has_kub && specialCategories.includes(categoryName)) {
           const measurements = selectedStock.product_read.measurement || [];
           const getNumber = (name: string) => {
             const m = measurements.find((m: any) => m.measurement_read.measurement_name === name);
@@ -420,7 +422,7 @@ export default function CreateSale() {
     if (recyclingRecord) {
       // Use recycling profit logic for recycled products
       profit = calculateRecyclingProfit(recyclingRecord, 1); // default 1 unit
-    } else if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
+    } else if (selectedStock.product_read?.has_kub && ["Половой", "Страпила", "Половой агаш", "Стропила"].includes(selectedStock.product_read?.category_read?.category_name)) {
       // PROFIT_FAKE logic for specific categories
       const measurements = selectedStock.product_read.measurement || [];
       const getNumber = (name: string) => {
@@ -489,7 +491,7 @@ export default function CreateSale() {
           const priceDifference = currentSubtotal - originalSubtotal;
           const newProfitPerUnit = baseProfitPerUnit + priceDifference;
           profit = newProfitPerUnit * value;
-        } else if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
+        } else if (selectedStock.product_read?.has_kub && ["Половой", "Страпила", "Половой агаш", "Стропила"].includes(selectedStock.product_read?.category_read?.category_name)) {
           // PROFIT_FAKE logic
           const measurements = selectedStock.product_read.measurement || [];
           const getNumber = (name: string) => {
@@ -500,10 +502,9 @@ export default function CreateSale() {
           const thickness = getNumber('Толщина');
           const meter = getNumber('Метр');
           const exchangeRate = parseFloat(selectedStock.exchange_rate_read?.currency_rate || '1');
-          const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
-          const purchasePriceInUs = purchasePriceInUss;
+          const purchasePriceInUs = parseFloat(selectedStock.purchase_price_in_us || '0');
           const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
-                    const sellingPrice = parseFloat(selectedStock.selling_price || '0');
+          const sellingPrice = parseFloat(selectedStock.selling_price || '0');
           profit = (sellingPrice - PROFIT_FAKE) * value;
         } else {
           // Standard profit calculation
@@ -551,7 +552,7 @@ export default function CreateSale() {
             // 4. Adjust the profit and multiply to get total profit.
             profit = (baseProfitPerUnit + priceDifference) * quantity;
 
-        } else if (selectedStock.product_read?.has_kub && (selectedStock.product_read?.category_read?.id === 2 || selectedStock.product_read?.category_read?.id === 8)) {
+        } else if (selectedStock.product_read?.has_kub && ["Половой", "Страпила", "Половой агаш", "Стропила"].includes(selectedStock.product_read?.category_read?.category_name)) {
             // PROFIT_FAKE logic
             const measurements = selectedStock.product_read.measurement || [];
             const getNumber = (name: string) => {
@@ -562,8 +563,7 @@ export default function CreateSale() {
             const thickness = getNumber('Толщина');
             const meter = getNumber('Метр');
             const exchangeRate = parseFloat(selectedStock.exchange_rate_read?.currency_rate || '1');
-            const purchasePriceInUss = parseFloat(selectedStock.purchase_price_in_us || '0');
-            const purchasePriceInUs  = purchasePriceInUss;
+            const purchasePriceInUs  = parseFloat(selectedStock.purchase_price_in_us || '0');
             const PROFIT_FAKE = length * meter * thickness * exchangeRate * purchasePriceInUs;
             // Use the new subtotal from the input as the current selling price
             profit = (newSubtotal - PROFIT_FAKE) * quantity;

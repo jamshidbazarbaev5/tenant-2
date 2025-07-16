@@ -35,6 +35,7 @@ export default function StocksPage() {
   const [selectedStore, setSelectedStore] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+    const [productId,setProductId] = useState<string>('');
   const [productZero, setProductZero] = useState(false); // Show zero arrivals filter
   const pageSize = 30;
   const formatDate = (dateString: string) => {
@@ -54,6 +55,16 @@ export default function StocksPage() {
 
   // Columns definition
   const columns = [
+        {
+      header: t('table.id'),
+      accessorKey: 'stock_id',
+      cell: (row: Stock) => row.id,
+    },
+    {
+      header: t('table.id'),
+      accessorKey: 'id',
+      cell: (row: Stock) => <span className="text-gray-500">{row.id}</span>
+    },
     {
       header: t('table.product'),
       accessorKey: 'product_read',
@@ -375,6 +386,12 @@ export default function StocksPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5" >
       
         {/* Removed store selection dropdown */}
+        <Input
+          type="text"
+          value={productId}
+          onChange={e => setProductId(e.target.value)}
+          placeholder={t('forms.type_product_id')}
+        />
 
         <Input
           type="text"

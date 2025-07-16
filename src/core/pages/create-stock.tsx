@@ -52,7 +52,7 @@ export default function CreateStock() {
   const [currency, setCurrency] = useState<{ id: number; currency_rate: string } | null>(null);
   const [currencyLoading, setCurrencyLoading] = useState(true);
   const [_calculatedSellingPrice, setCalculatedSellingPrice] = useState<string>('');
-  
+
   // Define stock fields with translations
   const stockFields = [
     {
@@ -131,7 +131,7 @@ export default function CreateStock() {
       placeholder: t('common.enter_arrival_date'),
       required: true,
     },
-   
+
     {
       name: 'supplier_write',
       label: t('common.supplier'),
@@ -140,23 +140,23 @@ export default function CreateStock() {
       required: true,
       options: [], // Will be populated with suppliers
     },
-   
-  
+
+
   ];
   const createStock = useCreateStock();
-  
+
   // Create mutations
   const createProduct = useCreateProduct();
   const createSupplier = useCreateSupplier();
-  
+
   // State for create new modals
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [createSupplierOpen, setCreateSupplierOpen] = useState(false);
-  
+
   // Forms for creating new items
   const productForm = useForm<CreateProductForm>();
   const supplierForm = useForm<CreateSupplierForm>();
-  
+
   const form = useForm<FormValues>({
     defaultValues: {
       purchase_price_in_us: '',
@@ -174,7 +174,7 @@ export default function CreateStock() {
   const usdPrice = form.watch('purchase_price_in_us');
   // const exchangeRate = form.watch('exchange_rate');
   const exchangeRateValue = currency?.currency_rate || '';
-  
+
   // Fetch products, stores, measurements, suppliers and categories for the select dropdowns
   // const { data: productsData } = useGetProducts({
   //   params: {
@@ -192,7 +192,7 @@ export default function CreateStock() {
 
   const suppliers = Array.isArray(suppliersData) ? suppliersData : suppliersData?.results || [];
   const categories = Array.isArray(categoriesData) ? categoriesData : categoriesData?.results || [];
-  
+
   // Fetch all products from all API pages using api instance
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -222,7 +222,7 @@ export default function CreateStock() {
   const handleCreateSupplier = () => {
     setCreateSupplierOpen(true);
   };
-  
+
 
 
   // Fetch currency rate on mount using api instance
@@ -252,7 +252,7 @@ export default function CreateStock() {
       const rate = parseFloat(exchangeRateValue);
       const quantityString = form.watch('quantity')?.toString() || '0';
       const quantity = parseFloat(quantityString);
-      
+
       if (!isNaN(priceInUSD) && !isNaN(rate)) {
         const calculatedPrice = priceInUSD * rate;
         form.setValue('purchase_price_in_uz', calculatedPrice.toString(), {
@@ -273,10 +273,10 @@ export default function CreateStock() {
 
   // Effect to update calculated selling price and min price for has_kub products
   useEffect(() => {
-    // Only calculate for category 2 or 8
-    const allowedCategories = [2, 8];
-    const categoryId = selectedProduct?.category_read?.id;
-    if (selectedProduct?.has_kub && allowedCategories.includes(categoryId)) {
+    // Only calculate for categories: "Половой", "Страпила", "Половой агаш", "Стропила"
+    const allowedCategoryNames = ["Половой", "Страпила", "Половой агаш", "Стропила"];
+    const categoryName = selectedProduct?.category_read?.category_name;
+    if (selectedProduct?.has_kub && allowedCategoryNames.includes(categoryName)) {
       // Get all measurement numbers and multiply them
       const measurements = selectedProduct.measurement || [];
       const baseValue = measurements.reduce((acc: number, m: any) => {
@@ -484,7 +484,8 @@ export default function CreateStock() {
         supplier_write: typeof data.supplier_write === 'string' ? parseInt(data.supplier_write, 10) : data.supplier_write!,
         date_of_arrived: data.date_of_arrived,
         income_weight: data.income_weight,
-        measurement_write: []
+        measurement_write: [],
+        quantity_for_history: quantity,
       };
       if (data.purchase_price_in_us && data.purchase_price_in_us !== '') {
         formattedData.purchase_price_in_us = String(data.purchase_price_in_us);
@@ -567,8 +568,8 @@ export default function CreateStock() {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem 
-                      key={String(category.id)} 
+                    <SelectItem
+                      key={String(category.id)}
                       value={String(category.id || '')}>
                       {category.category_name}
                     </SelectItem>
