@@ -194,6 +194,7 @@
     "close": "Jabuw"
   },
   "navigation": {
+    "history": "Tarix",
     "dashboard": "Panel",
     "profile": "Profile",
     "expense": "Rasxodtar",
@@ -248,8 +249,8 @@
     "amount_exceeds_remainder": "Summa qalǵan summadan artıq bolmawı kerek"
   },
   "forms": {
-    "type_product_id": "Kelgen prixod ID-sin kiritiń",
     "type": "Túr",
+    "type_product_id": "Prixod Id jazin",
     "sponsor_name": "Sponsor atı",
     "overpayment_unused": "Artiq to'lendi",
     "sponsor": "Sponsor",
@@ -459,7 +460,8 @@
     "select_user": "Paydalanıwshını tańlań"
   },
   "table": {
-    "id": "ID",
+    "id": "Id",
+
     "subtotal": "Bir mug'dar'ga summa",
     "total_pure_revenue": "Barlıq toza tabıs",
     "sold_date":"Satilg'an sane",

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useGetRecyclings, useDeleteRecycling } from '../api/recycling';
 import { format } from 'date-fns';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { Input } from '@/components/ui/input';
 
 const columns = (t: any) => [
   {
@@ -47,13 +48,13 @@ const columns = (t: any) => [
 export default function RecyclingsPage() {
   const [page, setPage] = useState(1);
   const { t } = useTranslation();
+  const [id,setId] = useState<string>('');
 
   // Fetch recyclings with pagination
   const { data: recyclingsData, isLoading } = useGetRecyclings({
     params: {
       page,
-      page_size: 10,
-      ordering: '-date_of_recycle',
+      stock_id:id
     },
   });
 
@@ -70,21 +71,22 @@ export default function RecyclingsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t('navigation.recyclings')}</h1>
-      </div>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">{t('navigation.recyclings')}</h1>
+        </div>
+        <Input value={id} onChange={(e) => setId(String(e.target.value))} placeholder={t('table.id')} />
 
-      <ResourceTable
-        data={recyclings}
-        columns={columns(t)}
-        isLoading={isLoading}
-        onDelete={currentUser?.is_superuser ? handleDelete : undefined}
-        pageSize={10}
-        totalCount={totalCount}
-        currentPage={page}
-        onPageChange={setPage}
-      />
-    </div>
+        <ResourceTable
+            data={recyclings}
+            columns={columns(t)}
+            isLoading={isLoading}
+            onDelete={currentUser?.is_superuser ? handleDelete : undefined}
+            pageSize={30}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+        />
+      </div>
   );
 }

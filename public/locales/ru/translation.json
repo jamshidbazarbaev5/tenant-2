@@ -222,6 +222,7 @@
   "navigation": {
     "dashobard": "Дашбоард",
     "payments": "Платежи",
+    "history": "История",
     "loan":"Долги",
     "sponsors":"Спонсор",
     "profile": "Профиль",
@@ -279,7 +280,8 @@
   },
 
   "forms": {
-    "type_product_id": "Введите ID прихода",
+
+    "type_product_id": "Пишите ид прихода",
     "sponsor_name": "Имя спонсора",
     "type":"Тип",
     "paid_at":"Дата оплаты",
